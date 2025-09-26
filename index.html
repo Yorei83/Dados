@@ -4,14 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lanzador de Dados</title>
-
-<!-- Fuente estilo D&D -->
 <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js"></script>
-
 <style>
   body {
     font-family: 'MedievalSharp', cursive;
@@ -19,13 +12,25 @@
     background-size: cover;
     color: #f5deb3;
     text-align: center;
+    padding: 20px;
     margin:0;
-    padding:20px;
   }
   h1 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     font-size: 2.5rem;
     text-shadow: 2px 2px 5px #000;
     margin-bottom: 20px;
+  }
+  .dado {
+    width:60px;
+    height:60px;
+    fill:#8b0000;
+    stroke:#ffd700;
+    stroke-width:2;
+    filter: drop-shadow(0 0 5px gold);
   }
   select, input, button {
     margin: 5px;
@@ -36,129 +41,181 @@
     color: #f5deb3;
     font-family: 'MedievalSharp', cursive;
     cursor: pointer;
+    transition: background 0.15s ease;
   }
-  button:hover { background: rgba(255,215,0,0.3); }
+  #cantidad {
+    width: 60px;
+    text-align: center;
+  }
+  button:active {
+    background: rgba(255,215,0,0.5);
+    transition: background 0.05s ease;
+  }
   #chat {
-    width: 95%;
+    width: 90%;
     max-width: 600px;
     margin: 20px auto;
     background: rgba(0,0,0,0.7);
     padding: 15px;
     border-radius: 10px;
     text-align: left;
-    height: 50vh;
+    height: 300px;
     overflow-y: auto;
     border: 2px solid #d4af37;
   }
   .msg { margin-bottom:10px; padding:5px; border-bottom:1px solid #8b4513; word-wrap: break-word;}
-  @media (max-width:768px){
-    #chat{height:60vh;}
-    .controls{flex-direction:column;gap:8px;}
+  .fila-dados {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .fila-botones {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  @media (max-width: 600px) {
+    .fila-dados { flex-direction: column; }
+    #chat { height: 350px; }
+  }
+  #fullscreenBtns { position: fixed; bottom: 20px; right: 20px; display: none; }
+  @media (min-width: 1025px) {
+    #fullscreenBtns { display: block; }
   }
 </style>
 </head>
 <body>
-<h1>Lanzador de Dados</h1>
 
-<div class="controls" style="display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px;">
-  <label>Cantidad:
-    <input type="number" id="cantidad" min="1" value="1" style="width:60px;">
-  </label>
-  <label>Tipo:
-    <select id="tipo">
-      <option value="2">d2</option><option value="4">d4</option><option value="6">d6</option>
-      <option value="8">d8</option><option value="10">d10</option><option value="12">d12</option>
-      <option value="20">d20</option><option value="100">d100</option>
-    </select>
-  </label>
+<h1>
+  <svg class="dado" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="32,2 62,16 54,58 10,58 2,16"/>
+    <text x="32" y="40" font-size="32" text-anchor="middle" font-family="MedievalSharp, Arial" font-weight="bold" fill="#ffd700">20</text>
+  </svg>
+  Lanzador de Dados
+</h1>
+
+<div>
+  <input type="text" id="usuario" placeholder="Tu nombre">
+</div>
+
+<div class="fila-dados">
+  <input type="number" id="cantidad" min="1" value="1">
+  <select id="tipo">
+    <option value="2">d2</option><option value="4">d4</option><option value="6">d6</option>
+    <option value="8">d8</option><option value="10">d10</option><option value="12">d12</option>
+    <option value="20">d20</option><option value="100">d100</option>
+  </select>
   <button id="tirar">Lanzar dados</button>
 </div>
 
-<div style="margin-top:10px;">
+<div class="fila-botones">
   <button id="especial">4d6 (3 más altos)</button>
   <button id="limpiarTodo">LIMPIAR TODO</button>
 </div>
 
 <div id="chat"></div>
 
+<div id="fullscreenBtns">
+  <button id="fullscreenEnter">Pantalla completa</button>
+  <button id="fullscreenExit" style="display:none;">Salir pantalla completa</button>
+</div>
+
 <script>
-  // 🔹 CONFIGURACIÓN FIREBASE
-  const firebaseConfig = {
-    apiKey: "AIzaSyAtmCLh41-kP3Duzz7vuUDgwo7KtnsJgAs",
-    authDomain: "dados-en-vivo.firebaseapp.com",
-    databaseURL: "https://dados-en-vivo-default-rtdb.europe-west1.firebasedatabase.app/",
-    projectId: "dados-en-vivo",
-    storageBucket: "dados-en-vivo.firebasestorage.app",
-    messagingSenderId: "755216472287",
-    appId: "1:755216472287:web:36c0bdd712c5feec4fb16a"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+const chat = document.getElementById("chat");
+const vibrar = () => { if (navigator.vibrate) navigator.vibrate(50); };
 
-  // 🔹 PIDE NOMBRE DE USUARIO AL ENTRAR
-  let usuario = "";
-  while(!usuario){
-    usuario = prompt("Introduce tu nombre para identificar las tiradas:") || "";
-    usuario = usuario.trim();
-  }
+function tirarDados(lados, cantidad){
+  let res = [];
+  for(let i=0;i<cantidad;i++) res.push(Math.floor(Math.random()*lados)+1);
+  return res;
+}
+function colorearNumero(n){
+  if(n === 1) return `<span style="color:red;font-weight:bold">${n}</span>`;
+  if(n === 6 || n === 20) return `<span style="color:green;font-weight:bold">${n}</span>`;
+  return n;
+}
+function animarChatMultiple(usuario, numerosFinales, sumaFinal){
+  const div = document.createElement("div");
+  div.className = "msg";
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 
-  const chat = document.getElementById("chat");
+  const vueltas = 15;
+  const interval = 50;
+  let cuenta = 0;
 
-  function tirarDados(lados, cantidad){
-    const res = [];
-    for(let i=0;i<cantidad;i++) res.push(Math.floor(Math.random()*lados)+1);
-    return res;
-  }
-
-  function colorearNumero(n){
-    if(n === 1) return `<span style="color:red;font-weight:bold">${n}</span>`;
-    if(n === 6 || n === 20) return `<span style="color:green;font-weight:bold">${n}</span>`;
-    return n;
-  }
-
-  function enviarTirada(dados, total){
-    db.ref("tiradas").push({
-      usuario: usuario,
-      dados: dados,
-      total: total,
-      timestamp: Date.now()
-    });
-  }
-
-  function mostrarTirada(data){
-    const div = document.createElement("div");
-    div.className = "msg";
-    div.innerHTML = `${data.usuario}: [${data.dados.map(colorearNumero).join(", ")}] Total: ${data.total}`;
-    chat.appendChild(div);
+  const anim = setInterval(()=>{
+    const numeros = numerosFinales.map(n=> Math.floor(Math.random() * n) + 1);
+    const suma = numeros.reduce((a,b)=>a+b,0);
+    div.innerHTML = `${usuario}: [${numeros.map(colorearNumero).join(", ")}] Total: ${suma}`;
+    cuenta++;
+    if(cuenta >= vueltas){
+      clearInterval(anim);
+      div.innerHTML = `${usuario}: [${numerosFinales.map(colorearNumero).join(", ")}] Total: ${sumaFinal}`;
+    }
     chat.scrollTop = chat.scrollHeight;
-  }
+  }, interval);
+}
 
-  // Escucha en tiempo real
-  db.ref("tiradas").limitToLast(50).on("child_added", snap => {
-    const data = snap.val();
-    mostrarTirada(data);
-  });
+document.getElementById("tirar").onclick = ()=>{
+  vibrar();
+  const user = document.getElementById("usuario").value.trim() || "Anon";
+  const lados = parseInt(document.getElementById("tipo").value);
+  const cant = parseInt(document.getElementById("cantidad").value);
+  const res = tirarDados(lados,cant);
+  const suma = res.reduce((a,b)=>a+b,0);
+  animarChatMultiple(user,res,suma);
+};
 
-  document.getElementById("tirar").onclick = ()=>{
-    const lados = parseInt(document.getElementById("tipo").value);
-    const cant = parseInt(document.getElementById("cantidad").value);
-    const res = tirarDados(lados, cant);
-    const suma = res.reduce((a,b)=>a+b,0);
-    enviarTirada(res, suma);
-  };
+document.getElementById("especial").onclick = ()=>{
+  vibrar();
+  const user = document.getElementById("usuario").value.trim() || "Anon";
+  const res = tirarDados(6,4);
+  const top3 = [...res].sort((a,b)=>b-a).slice(0,3);
+  const suma = top3.reduce((a,b)=>a+b,0);
+  const mensaje = ` (Top3: ${top3.map(colorearNumero).join(", ")})`;
+  const div = document.createElement("div");
+  div.className = "msg";
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 
-  document.getElementById("especial").onclick = ()=>{
-    const res = tirarDados(6,4);
-    const top3 = [...res].sort((a,b)=>b-a).slice(0,3);
-    const suma = top3.reduce((a,b)=>a+b,0);
-    // enviamos los 4 dados pero mostramos que la suma es de los 3 mayores
-    enviarTirada(res, suma + " (suma de los 3 más altos)");
-  };
+  const vueltas = 15;
+  const interval = 50;
+  let cuenta = 0;
 
-  document.getElementById("limpiarTodo").onclick = ()=>{
-    db.ref("tiradas").remove();
-    chat.innerHTML = "";
-  };
+  const anim = setInterval(()=>{
+    const numeros = res.map(()=> Math.floor(Math.random() * 6) + 1);
+    div.innerHTML = `${user}: [${numeros.map(colorearNumero).join(", ")}]${mensaje}`;
+    cuenta++;
+    if(cuenta >= vueltas){
+      clearInterval(anim);
+      div.innerHTML = `${user}: [${res.map(colorearNumero).join(", ")}] Total Top3: ${suma}`;
+    }
+    chat.scrollTop = chat.scrollHeight;
+  }, interval);
+};
+
+document.getElementById("limpiarTodo").onclick = ()=>{
+  vibrar();
+  chat.innerHTML = "";
+};
+
+/* Pantalla completa (solo escritorio) */
+const btnEnter = document.getElementById("fullscreenEnter");
+const btnExit = document.getElementById("fullscreenExit");
+btnEnter.addEventListener("click", ()=>{
+  if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+  btnEnter.style.display="none"; btnExit.style.display="inline-block";
+});
+btnExit.addEventListener("click", ()=>{
+  if (document.exitFullscreen) document.exitFullscreen();
+  btnExit.style.display="none"; btnEnter.style.display="inline-block";
+});
 </script>
 </body>
 </html>
