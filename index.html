@@ -43,12 +43,10 @@
     cursor: pointer;
     transition: background 0.15s ease;
   }
-  /* Input de cantidad más corto */
   #cantidad {
     width: 60px;
     text-align: center;
   }
-  /* Parpadeo rápido al pulsar */
   button:active {
     background: rgba(255,215,0,0.5);
     transition: background 0.05s ease;
@@ -66,7 +64,6 @@
     border: 2px solid #d4af37;
   }
   .msg { margin-bottom:10px; padding:5px; border-bottom:1px solid #8b4513; word-wrap: break-word;}
-  /* Contenedores para orden */
   .fila-dados {
     display: flex;
     justify-content: center;
@@ -82,12 +79,10 @@
     gap: 10px;
     margin-top: 10px;
   }
-  /* Responsive */
   @media (max-width: 600px) {
     .fila-dados { flex-direction: column; }
     #chat { height: 350px; }
   }
-  /* Botón pantalla completa solo en escritorio */
   #fullscreenBtns { position: fixed; bottom: 20px; right: 20px; display: none; }
   @media (min-width: 1025px) {
     #fullscreenBtns { display: block; }
@@ -108,7 +103,6 @@
   <input type="text" id="usuario" placeholder="Tu nombre">
 </div>
 
-<!-- AHORA Cantidad a la izquierda y Tipo a la derecha -->
 <div class="fila-dados">
   <input type="number" id="cantidad" min="1" value="1">
   <select id="tipo">
@@ -126,7 +120,6 @@
 
 <div id="chat"></div>
 
-<!-- Botones pantalla completa solo escritorio -->
 <div id="fullscreenBtns">
   <button id="fullscreenEnter">Pantalla completa</button>
   <button id="fullscreenExit" style="display:none;">Salir pantalla completa</button>
@@ -134,6 +127,7 @@
 
 <script>
 const chat = document.getElementById("chat");
+const vibrar = () => { if (navigator.vibrate) navigator.vibrate(50); };
 
 function tirarDados(lados, cantidad){
   let res = [];
@@ -169,6 +163,7 @@ function animarChatMultiple(usuario, numerosFinales, sumaFinal){
 }
 
 document.getElementById("tirar").onclick = ()=>{
+  vibrar();
   const user = document.getElementById("usuario").value.trim() || "Anon";
   const lados = parseInt(document.getElementById("tipo").value);
   const cant = parseInt(document.getElementById("cantidad").value);
@@ -178,6 +173,7 @@ document.getElementById("tirar").onclick = ()=>{
 };
 
 document.getElementById("especial").onclick = ()=>{
+  vibrar();
   const user = document.getElementById("usuario").value.trim() || "Anon";
   const res = tirarDados(6,4);
   const top3 = [...res].sort((a,b)=>b-a).slice(0,3);
@@ -205,6 +201,7 @@ document.getElementById("especial").onclick = ()=>{
 };
 
 document.getElementById("limpiarTodo").onclick = ()=>{
+  vibrar();
   chat.innerHTML = "";
 };
 
