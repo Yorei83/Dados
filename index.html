@@ -43,6 +43,11 @@
     cursor: pointer;
     transition: background 0.15s ease;
   }
+  /* Input de cantidad más corto */
+  #cantidad {
+    width: 60px;
+    text-align: center;
+  }
   /* Parpadeo rápido al pulsar */
   button:active {
     background: rgba(255,215,0,0.5);
@@ -103,13 +108,14 @@
   <input type="text" id="usuario" placeholder="Tu nombre">
 </div>
 
+<!-- AHORA Cantidad a la izquierda y Tipo a la derecha -->
 <div class="fila-dados">
+  <input type="number" id="cantidad" min="1" value="1">
   <select id="tipo">
     <option value="2">d2</option><option value="4">d4</option><option value="6">d6</option>
     <option value="8">d8</option><option value="10">d10</option><option value="12">d12</option>
     <option value="20">d20</option><option value="100">d100</option>
   </select>
-  <input type="number" id="cantidad" min="1" value="1">
   <button id="tirar">Lanzar dados</button>
 </div>
 
@@ -176,7 +182,6 @@ document.getElementById("especial").onclick = ()=>{
   const res = tirarDados(6,4);
   const top3 = [...res].sort((a,b)=>b-a).slice(0,3);
   const suma = top3.reduce((a,b)=>a+b,0);
-  // Muestra los 4 dados y recalca top3
   const mensaje = ` (Top3: ${top3.map(colorearNumero).join(", ")})`;
   const div = document.createElement("div");
   div.className = "msg";
