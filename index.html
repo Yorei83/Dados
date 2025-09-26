@@ -32,7 +32,6 @@
     stroke-width:2;
     filter: drop-shadow(0 0 5px gold);
   }
-  /* Contenedor de controles */
   .controls {
     display: flex;
     flex-wrap: wrap;
@@ -71,7 +70,7 @@
   .msg { margin-bottom:10px; padding:5px; border-bottom:1px solid #8b4513; word-wrap: break-word;}
   .propio { color: #ffd700; }
 
-  /* Botones de pantalla completa */
+  /* Botones de pantalla completa (solo desktop) */
   #fullscreenBtn, #exitFullscreenBtn {
     position: fixed;
     bottom: 20px;
@@ -90,9 +89,12 @@
   }
   #exitFullscreenBtn { display: none; }
 
+  /* Ajustes móviles */
   @media (max-width: 768px) {
     body { padding: 10px; }
     h1 { font-size: 2rem; }
+    /* Ocultar botones de pantalla completa en móviles/tablets */
+    #fullscreenBtn, #exitFullscreenBtn { display: none !important; }
   }
   @media (max-width: 768px) and (orientation: portrait) {
     #chat { height: 55vh; }
@@ -124,6 +126,7 @@
 
 <div id="chat"></div>
 
+<!-- Botones pantalla completa (solo visibles en desktop) -->
 <div id="fullscreenBtn">⛶</div>
 <div id="exitFullscreenBtn">🡼</div>
 
@@ -189,7 +192,7 @@ document.getElementById("especial").onclick = ()=>{
 
 document.getElementById("limpiarTodo").onclick = ()=>{ chat.innerHTML = ""; };
 
-// Pantalla completa
+// Pantalla completa (solo se ejecuta en desktop)
 const fullBtn = document.getElementById("fullscreenBtn");
 const exitBtn = document.getElementById("exitFullscreenBtn");
 
