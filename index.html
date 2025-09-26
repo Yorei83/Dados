@@ -32,19 +32,8 @@
     stroke-width:2;
     filter: drop-shadow(0 0 5px gold);
   }
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .controls input,
-  .controls select,
-  .controls button {
-    min-width: 110px;
-    max-width: 90%;
-    margin: 4px;
+  select, input, button {
+    margin: 5px;
     padding: 8px 12px;
     border: 2px solid #d4af37;
     border-radius: 8px;
@@ -52,9 +41,13 @@
     color: #f5deb3;
     font-family: 'MedievalSharp', cursive;
     cursor: pointer;
+    transition: background 0.15s ease;
   }
-  .controls button:hover { background: rgba(255,215,0,0.3); }
-
+  /* Parpadeo rápido al pulsar */
+  button:active {
+    background: rgba(255,215,0,0.5);
+    transition: background 0.05s ease;
+  }
   #chat {
     width: 90%;
     max-width: 600px;
@@ -63,94 +56,92 @@
     padding: 15px;
     border-radius: 10px;
     text-align: left;
-    height: 40vh;
+    height: 300px;
     overflow-y: auto;
     border: 2px solid #d4af37;
   }
   .msg { margin-bottom:10px; padding:5px; border-bottom:1px solid #8b4513; word-wrap: break-word;}
-  .propio { color: #ffd700; }
-
-  /* Botones de pantalla completa (solo desktop) */
-  #fullscreenBtn, #exitFullscreenBtn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(0,0,0,0.6);
-    border: 2px solid #d4af37;
-    border-radius: 50%;
-    width: 48px;
-    height: 48px;
-    color: #f5deb3;
-    font-size: 22px;
+  /* Contenedores para orden */
+  .fila-dados {
     display: flex;
-    align-items: center;
     justify-content: center;
-    cursor: pointer;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
   }
-  #exitFullscreenBtn { display: none; }
-
-  /* Ajustes móviles */
-  @media (max-width: 768px) {
-    body { padding: 10px; }
-    h1 { font-size: 2rem; }
-    /* Ocultar botones de pantalla completa en móviles/tablets */
-    #fullscreenBtn, #exitFullscreenBtn { display: none !important; }
+  .fila-botones {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
   }
-  @media (max-width: 768px) and (orientation: portrait) {
-    #chat { height: 55vh; }
+  /* Responsive */
+  @media (max-width: 600px) {
+    .fila-dados { flex-direction: column; }
+    #chat { height: 350px; }
+  }
+  /* Botón pantalla completa solo en escritorio */
+  #fullscreenBtns { position: fixed; bottom: 20px; right: 20px; display: none; }
+  @media (min-width: 1025px) {
+    #fullscreenBtns { display: block; }
   }
 </style>
 </head>
 <body>
+
 <h1>
   <svg class="dado" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
     <polygon points="32,2 62,16 54,58 10,58 2,16"/>
-    <text x="32" y="42" font-size="32" text-anchor="middle"
-          font-family="MedievalSharp, Arial" font-weight="bold" fill="#ffd700">20</text>
+    <text x="32" y="40" font-size="32" text-anchor="middle" font-family="MedievalSharp, Arial" font-weight="bold" fill="#ffd700">20</text>
   </svg>
   Lanzador de Dados
 </h1>
 
-<div class="controls">
+<div>
   <input type="text" id="usuario" placeholder="Tu nombre">
+</div>
+
+<div class="fila-dados">
   <select id="tipo">
     <option value="2">d2</option><option value="4">d4</option><option value="6">d6</option>
     <option value="8">d8</option><option value="10">d10</option><option value="12">d12</option>
     <option value="20">d20</option><option value="100">d100</option>
   </select>
   <input type="number" id="cantidad" min="1" value="1">
-  <button id="tirar">Tirar</button>
+  <button id="tirar">Lanzar dados</button>
+</div>
+
+<div class="fila-botones">
   <button id="especial">4d6 (3 más altos)</button>
-  <button id="limpiarTodo">Limpiar TODO</button>
+  <button id="limpiarTodo">LIMPIAR TODO</button>
 </div>
 
 <div id="chat"></div>
 
-<!-- Botones pantalla completa (solo visibles en desktop) -->
-<div id="fullscreenBtn">⛶</div>
-<div id="exitFullscreenBtn">🡼</div>
+<!-- Botones pantalla completa solo escritorio -->
+<div id="fullscreenBtns">
+  <button id="fullscreenEnter">Pantalla completa</button>
+  <button id="fullscreenExit" style="display:none;">Salir pantalla completa</button>
+</div>
 
 <script>
 const chat = document.getElementById("chat");
 
 function tirarDados(lados, cantidad){
   let res = [];
-  for(let i=0;i<cantidad;i++){
-    res.push(Math.floor(Math.random()*lados)+1);
-  }
+  for(let i=0;i<cantidad;i++) res.push(Math.floor(Math.random()*lados)+1);
   return res;
 }
-
 function colorearNumero(n){
   if(n === 1) return `<span style="color:red;font-weight:bold">${n}</span>`;
   if(n === 6 || n === 20) return `<span style="color:green;font-weight:bold">${n}</span>`;
   return n;
 }
-
 function animarChatMultiple(usuario, numerosFinales, sumaFinal){
   const div = document.createElement("div");
-  div.className = "msg propio";
-  div.dataset.usuario = usuario;
+  div.className = "msg";
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 
@@ -159,9 +150,7 @@ function animarChatMultiple(usuario, numerosFinales, sumaFinal){
   let cuenta = 0;
 
   const anim = setInterval(()=>{
-    const numeros = numerosFinales.map(n=>{
-      return Math.floor(Math.random() * n) + 1;
-    });
+    const numeros = numerosFinales.map(n=> Math.floor(Math.random() * n) + 1);
     const suma = numeros.reduce((a,b)=>a+b,0);
     div.innerHTML = `${usuario}: [${numeros.map(colorearNumero).join(", ")}] Total: ${suma}`;
     cuenta++;
@@ -187,32 +176,43 @@ document.getElementById("especial").onclick = ()=>{
   const res = tirarDados(6,4);
   const top3 = [...res].sort((a,b)=>b-a).slice(0,3);
   const suma = top3.reduce((a,b)=>a+b,0);
-  animarChatMultiple(user,res,suma);
+  // Muestra los 4 dados y recalca top3
+  const mensaje = ` (Top3: ${top3.map(colorearNumero).join(", ")})`;
+  const div = document.createElement("div");
+  div.className = "msg";
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+
+  const vueltas = 15;
+  const interval = 50;
+  let cuenta = 0;
+
+  const anim = setInterval(()=>{
+    const numeros = res.map(()=> Math.floor(Math.random() * 6) + 1);
+    div.innerHTML = `${user}: [${numeros.map(colorearNumero).join(", ")}]${mensaje}`;
+    cuenta++;
+    if(cuenta >= vueltas){
+      clearInterval(anim);
+      div.innerHTML = `${user}: [${res.map(colorearNumero).join(", ")}] Total Top3: ${suma}`;
+    }
+    chat.scrollTop = chat.scrollHeight;
+  }, interval);
 };
 
-document.getElementById("limpiarTodo").onclick = ()=>{ chat.innerHTML = ""; };
+document.getElementById("limpiarTodo").onclick = ()=>{
+  chat.innerHTML = "";
+};
 
-// Pantalla completa (solo se ejecuta en desktop)
-const fullBtn = document.getElementById("fullscreenBtn");
-const exitBtn = document.getElementById("exitFullscreenBtn");
-
-fullBtn.addEventListener("click", ()=>{
-  if (document.documentElement.requestFullscreen) {
-    document.documentElement.requestFullscreen();
-  } else if (document.documentElement.webkitRequestFullscreen) {
-    document.documentElement.webkitRequestFullscreen();
-  }
-  fullBtn.style.display = "none";
-  exitBtn.style.display = "flex";
+/* Pantalla completa (solo escritorio) */
+const btnEnter = document.getElementById("fullscreenEnter");
+const btnExit = document.getElementById("fullscreenExit");
+btnEnter.addEventListener("click", ()=>{
+  if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+  btnEnter.style.display="none"; btnExit.style.display="inline-block";
 });
-exitBtn.addEventListener("click", ()=>{
-  if (document.exitFullscreen) {
-    document.exitFullscreen();
-  } else if (document.webkitExitFullscreen) {
-    document.webkitExitFullscreen();
-  }
-  exitBtn.style.display = "none";
-  fullBtn.style.display = "flex";
+btnExit.addEventListener("click", ()=>{
+  if (document.exitFullscreen) document.exitFullscreen();
+  btnExit.style.display="none"; btnEnter.style.display="inline-block";
 });
 </script>
 </body>
