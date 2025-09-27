@@ -60,7 +60,7 @@
     border: 2px solid #d4af37;
   }
   .msg { margin-bottom:10px; padding:5px; border-bottom:1px solid #8b4513; word-wrap: break-word;}
-  .fila-dados {
+  .fila-dados, .fila-botones {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -68,25 +68,29 @@
     gap: 10px;
     margin-top: 10px;
   }
-  .fila-botones {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
+  /* Ajuste para móviles en vertical */
+  @media (max-width: 600px) {
+    .fila-dados {
+      flex-direction: row;       /* ✅ Ahora en fila horizontal */
+      flex-wrap: nowrap;         /* Evita salto de línea */
+      justify-content: center;
+      gap: 6px;
+    }
+    .fila-dados select,
+    .fila-dados button {
+      flex: 1;                   /* Se reparten el espacio */
+      min-width: 70px;
+    }
+    #chat { height: 350px; }
   }
-  #langContainer {
+  #fullscreenBtns { position: fixed; bottom: 20px; right: 20px; display: none; }
+  @media (min-width: 1025px) {
+    #fullscreenBtns { display: block; }
+  }
+  #langSelector {
     position: fixed;
     bottom: 20px;
     left: 20px;
-    background: rgba(0,0,0,0.6);
-    border: 2px solid #d4af37;
-    border-radius: 8px;
-    padding: 4px;
-  }
-  @media (max-width: 600px) {
-    .fila-dados { flex-direction: row; }
-    #chat { height: 350px; }
   }
 </style>
 </head>
@@ -107,18 +111,23 @@
     <option value="8">d8</option><option value="10">d10</option><option value="12">d12</option>
     <option value="20">d20</option><option value="100">d100</option>
   </select>
-  <button id="tirar"></button>
+  <button id="tirar">Lanzar dados</button>
 </div>
 
 <div class="fila-botones">
-  <button id="especial"></button>
-  <button id="moneda"></button>
-  <button id="limpiarTodo"></button>
+  <button id="especial">4d6 (3 más altos)</button>
+  <button id="moneda">Lanzar moneda</button>
+  <button id="limpiarTodo">LIMPIAR TODO</button>
 </div>
 
 <div id="chat"></div>
 
-<div id="langContainer">
+<div id="fullscreenBtns">
+  <button id="fullscreenEnter">Pantalla completa</button>
+  <button id="fullscreenExit" style="display:none;">Salir pantalla completa</button>
+</div>
+
+<div id="langSelector">
   <select id="lang">
     <option value="es">🇪🇸 Español</option>
     <option value="en">🇬🇧 English</option>
@@ -129,107 +138,62 @@
 </div>
 
 <script>
-// ===== LocalStorage: nombre de usuario =====
-let usuario = localStorage.getItem("usuario");
-if (!usuario) {
-  usuario = prompt("Introduce tu nombre:") || "Anon";
-  localStorage.setItem("usuario", usuario);
+let usuario = "";
+while(!usuario) {
+  usuario = prompt("Introduce tu nombre:");
 }
+document.title = `Lanzador de Dados - ${usuario}`;
 
-// ===== LocalStorage: idioma =====
-const langSelect = document.getElementById("lang");
-let currentLang = localStorage.getItem("lang") || "es";
-langSelect.value = currentLang;
-
-// ===== Traducciones =====
-const traducciones = {
-  es: { roll: "Lanzar dados", special: "4d6 (3 más altos)", coin: "Lanzar moneda",
-        clear: "LIMPIAR TODO", dice: "Lanzas", coinMsg: "Lanzas una moneda",
-        heads: "Cara", tails: "Cruz", total: "Total" },
-  en: { roll: "Roll dice", special: "4d6 (Top 3)", coin: "Flip coin",
-        clear: "CLEAR ALL", dice: "You roll", coinMsg: "You flip a coin",
-        heads: "Heads", tails: "Tails", total: "Total" },
-  ja: { roll: "サイコロを振る", special: "4d6 (上位3)", coin: "コインを投げる",
-        clear: "全削除", dice: "あなたは振る", coinMsg: "コインを投げる",
-        heads: "表", tails: "裏", total: "合計" },
-  fr: { roll: "Lancer les dés", special: "4d6 (3 plus hauts)", coin: "Lancer la pièce",
-        clear: "EFFACER TOUT", dice: "Vous lancez", coinMsg: "Vous lancez une pièce",
-        heads: "Face", tails: "Pile", total: "Total" },
-  de: { roll: "Würfeln", special: "4d6 (beste 3)", coin: "Münze werfen",
-        clear: "ALLES LÖSCHEN", dice: "Du würfelst", coinMsg: "Du wirfst eine Münze",
-        heads: "Kopf", tails: "Zahl", total: "Summe" }
-};
-
-function t(key){ return traducciones[currentLang][key] || key; }
-
-function updateTexts(){
-  document.getElementById("tirar").textContent = t("roll");
-  document.getElementById("especial").textContent = t("special");
-  document.getElementById("moneda").textContent = t("coin");
-  document.getElementById("limpiarTodo").textContent = t("clear");
-}
-updateTexts();
-
-langSelect.addEventListener("change", e=>{
-  currentLang = e.target.value;
-  localStorage.setItem("lang", currentLang);
-  updateTexts();
-});
-
-// ===== Generar opciones para cantidad =====
-const cantSel = document.getElementById("cantidad");
-for (let i=1;i<=50;i++){
-  let opt = document.createElement("option");
-  opt.value = i; opt.textContent = i;
-  cantSel.appendChild(opt);
-}
-
-// ===== Utilidades =====
 const chat = document.getElementById("chat");
 const vibrar = () => { if (navigator.vibrate) navigator.vibrate(50); };
+const cantidadSel = document.getElementById("cantidad");
+for(let i=1;i<=50;i++){
+  const op = document.createElement("option");
+  op.value = i;
+  op.textContent = i;
+  cantidadSel.appendChild(op);
+}
 
 function tirarDados(lados, cantidad){
   let res = [];
   for(let i=0;i<cantidad;i++) res.push(Math.floor(Math.random()*lados)+1);
   return res;
 }
-
 function colorearNumero(n,lados){
-  if(n===1) return `<span style="color:red;font-weight:bold">${n}</span>`;
-  if(n===lados) return `<span style="color:green;font-weight:bold">${n}</span>`;
+  if(n === lados) return `<span style="color:green;font-weight:bold">${n}</span>`;
+  if(n === 1) return `<span style="color:red;font-weight:bold">${n}</span>`;
   return n;
 }
-
-function animarChatMultiple(numerosFinales, lados, sumaFinal, textoInicial){
+function animarChatMultiple(numerosFinales, sumaFinal, lados){
   const div = document.createElement("div");
   div.className = "msg";
   chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+  chat.scrollTop = chat.scrollHeight;
 
   const vueltas = 15;
   const interval = 50;
   let cuenta = 0;
+
   const anim = setInterval(()=>{
-    const numeros = numerosFinales.map(()=> Math.floor(Math.random()*lados)+1);
+    const numeros = numerosFinales.map(()=> Math.floor(Math.random() * lados) + 1);
     const suma = numeros.reduce((a,b)=>a+b,0);
-    div.innerHTML = `${usuario}: ${textoInicial} [${numeros.map(n=>colorearNumero(n,lados)).join(", ")}] ${t("total")}: ${suma}`;
+    div.innerHTML = `${usuario}: [${numeros.map(n=>colorearNumero(n,lados)).join(", ")}] Total: ${suma}`;
     cuenta++;
     if(cuenta >= vueltas){
       clearInterval(anim);
-      div.innerHTML = `${usuario}: ${textoInicial} [${numerosFinales.map(n=>colorearNumero(n,lados)).join(", ")}] ${t("total")}: ${sumaFinal}`;
+      div.innerHTML = `${usuario}: [${numerosFinales.map(n=>colorearNumero(n,lados)).join(", ")}] Total: ${sumaFinal}`;
     }
-    chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+    chat.scrollTop = chat.scrollHeight;
   }, interval);
 }
 
-// ===== Botones =====
 document.getElementById("tirar").onclick = ()=>{
   vibrar();
   const lados = parseInt(document.getElementById("tipo").value);
-  const cant = parseInt(cantSel.value);
+  const cant = parseInt(cantidadSel.value);
   const res = tirarDados(lados,cant);
   const suma = res.reduce((a,b)=>a+b,0);
-  animarChatMultiple(res,lados,suma,t("dice"));
+  animarChatMultiple(res,suma,lados);
 };
 
 document.getElementById("especial").onclick = ()=>{
@@ -237,51 +201,69 @@ document.getElementById("especial").onclick = ()=>{
   const res = tirarDados(6,4);
   const top3 = [...res].sort((a,b)=>b-a).slice(0,3);
   const suma = top3.reduce((a,b)=>a+b,0);
+  const mensaje = ` (Top3: ${top3.map(n=>colorearNumero(n,6)).join(", ")})`;
   const div = document.createElement("div");
   div.className = "msg";
   chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+  chat.scrollTop = chat.scrollHeight;
 
   const vueltas = 15;
   const interval = 50;
   let cuenta = 0;
+
   const anim = setInterval(()=>{
-    const numeros = res.map(()=> Math.floor(Math.random()*6)+1);
-    div.innerHTML = `${usuario}: ${t("dice")} [${numeros.map(n=>colorearNumero(n,6)).join(", ")}]`;
+    const numeros = res.map(()=> Math.floor(Math.random() * 6) + 1);
+    div.innerHTML = `${usuario}: [${numeros.map(n=>colorearNumero(n,6)).join(", ")}]${mensaje}`;
     cuenta++;
     if(cuenta >= vueltas){
       clearInterval(anim);
-      div.innerHTML = `${usuario}: ${t("dice")} [${res.map(n=>colorearNumero(n,6)).join(", ")}] (${t("total")} Top3: ${suma})`;
+      div.innerHTML = `${usuario}: [${res.map(n=>colorearNumero(n,6)).join(", ")}] Total Top3: ${suma}`;
     }
-    chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+    chat.scrollTop = chat.scrollHeight;
   }, interval);
 };
 
 document.getElementById("moneda").onclick = ()=>{
   vibrar();
-  const resultado = Math.random() < 0.5 ? "heads" : "tails";
-  const opciones = ["heads","tails"];
   const div = document.createElement("div");
   div.className = "msg";
   chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+  chat.scrollTop = chat.scrollHeight;
 
+  const opciones = ["Cara","Cruz"];
+  const vueltas = 20;
+  const interval = 100;
   let cuenta = 0;
+
   const anim = setInterval(()=>{
     const temp = opciones[Math.floor(Math.random()*2)];
-    div.innerHTML = `${usuario}: ${t("coinMsg")} → <strong>${t(temp)}</strong>`;
+    div.innerHTML = `${usuario} lanza una moneda: <strong>${temp}</strong>`;
     cuenta++;
-    if(cuenta >= 15){
+    if(cuenta >= vueltas){
       clearInterval(anim);
-      div.innerHTML = `${usuario}: ${t("coinMsg")} → <strong>${t(resultado)}</strong>`;
+      const final = opciones[Math.floor(Math.random()*2)];
+      div.innerHTML = `${usuario} lanza una moneda: <strong>${final}</strong>`;
     }
-  }, 100);
+    chat.scrollTop = chat.scrollHeight;
+  }, interval);
 };
 
 document.getElementById("limpiarTodo").onclick = ()=>{
   vibrar();
   chat.innerHTML = "";
 };
+
+/* Pantalla completa */
+const btnEnter = document.getElementById("fullscreenEnter");
+const btnExit = document.getElementById("fullscreenExit");
+btnEnter.addEventListener("click", ()=>{
+  if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+  btnEnter.style.display="none"; btnExit.style.display="inline-block";
+});
+btnExit.addEventListener("click", ()=>{
+  if (document.exitFullscreen) document.exitFullscreen();
+  btnExit.style.display="none"; btnEnter.style.display="inline-block";
+});
 </script>
 </body>
 </html>
