@@ -68,17 +68,16 @@
     gap: 10px;
     margin-top: 10px;
   }
-  /* Ajuste para móviles en vertical */
   @media (max-width: 600px) {
     .fila-dados {
-      flex-direction: row;       /* ✅ Ahora en fila horizontal */
-      flex-wrap: nowrap;         /* Evita salto de línea */
+      flex-direction: row;
+      flex-wrap: nowrap;
       justify-content: center;
       gap: 6px;
     }
     .fila-dados select,
     .fila-dados button {
-      flex: 1;                   /* Se reparten el espacio */
+      flex: 1;
       min-width: 70px;
     }
     #chat { height: 350px; }
@@ -96,12 +95,12 @@
 </head>
 <body>
 
-<h1>
+<h1 id="title">
   <svg class="dado" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
     <polygon points="32,2 62,16 54,58 10,58 2,16"/>
     <text x="32" y="40" font-size="32" text-anchor="middle" font-family="MedievalSharp, Arial" font-weight="bold" fill="#ffd700">20</text>
   </svg>
-  Lanzador de Dados
+  <span id="titleText">Lanzador de Dados</span>
 </h1>
 
 <div class="fila-dados">
@@ -144,6 +143,69 @@ while(!usuario) {
 }
 document.title = `Lanzador de Dados - ${usuario}`;
 
+// ----- Traducciones -----
+const i18n = {
+  es: {
+    title: "Lanzador de Dados",
+    roll: "Lanzar dados",
+    special: "4d6 (3 más altos)",
+    coin: "Lanzar moneda",
+    clear: "LIMPIAR TODO",
+    full: "Pantalla completa",
+    exitFull: "Salir pantalla completa"
+  },
+  en: {
+    title: "Dice Roller",
+    roll: "Roll dice",
+    special: "4d6 (Top 3)",
+    coin: "Flip coin",
+    clear: "CLEAR ALL",
+    full: "Fullscreen",
+    exitFull: "Exit fullscreen"
+  },
+  ja: {
+    title: "ダイスローラー",
+    roll: "サイコロを振る",
+    special: "4d6 (上位3)",
+    coin: "コインを投げる",
+    clear: "すべてクリア",
+    full: "全画面表示",
+    exitFull: "全画面終了"
+  },
+  fr: {
+    title: "Lanceur de Dés",
+    roll: "Lancer les dés",
+    special: "4d6 (3 meilleurs)",
+    coin: "Lancer une pièce",
+    clear: "TOUT EFFACER",
+    full: "Plein écran",
+    exitFull: "Quitter plein écran"
+  },
+  de: {
+    title: "Würfelwerfer",
+    roll: "Würfeln",
+    special: "4d6 (beste 3)",
+    coin: "Münze werfen",
+    clear: "ALLES LÖSCHEN",
+    full: "Vollbild",
+    exitFull: "Vollbild beenden"
+  }
+};
+
+function updateLang(lang){
+  const t = i18n[lang] || i18n.es;
+  document.getElementById("titleText").textContent = t.title;
+  document.getElementById("tirar").textContent = t.roll;
+  document.getElementById("especial").textContent = t.special;
+  document.getElementById("moneda").textContent = t.coin;
+  document.getElementById("limpiarTodo").textContent = t.clear;
+  document.getElementById("fullscreenEnter").textContent = t.full;
+  document.getElementById("fullscreenExit").textContent = t.exitFull;
+  document.title = `${t.title} - ${usuario}`;
+}
+document.getElementById("lang").addEventListener("change",(e)=>updateLang(e.target.value));
+
+// ----- Lógica de dados -----
 const chat = document.getElementById("chat");
 const vibrar = () => { if (navigator.vibrate) navigator.vibrate(50); };
 const cantidadSel = document.getElementById("cantidad");
@@ -201,7 +263,6 @@ document.getElementById("especial").onclick = ()=>{
   const res = tirarDados(6,4);
   const top3 = [...res].sort((a,b)=>b-a).slice(0,3);
   const suma = top3.reduce((a,b)=>a+b,0);
-  const mensaje = ` (Top3: ${top3.map(n=>colorearNumero(n,6)).join(", ")})`;
   const div = document.createElement("div");
   div.className = "msg";
   chat.appendChild(div);
@@ -213,7 +274,7 @@ document.getElementById("especial").onclick = ()=>{
 
   const anim = setInterval(()=>{
     const numeros = res.map(()=> Math.floor(Math.random() * 6) + 1);
-    div.innerHTML = `${usuario}: [${numeros.map(n=>colorearNumero(n,6)).join(", ")}]${mensaje}`;
+    div.innerHTML = `${usuario}: [${numeros.map(n=>colorearNumero(n,6)).join(", ")}]`;
     cuenta++;
     if(cuenta >= vueltas){
       clearInterval(anim);
@@ -253,7 +314,7 @@ document.getElementById("limpiarTodo").onclick = ()=>{
   chat.innerHTML = "";
 };
 
-/* Pantalla completa */
+// ----- Pantalla completa -----
 const btnEnter = document.getElementById("fullscreenEnter");
 const btnExit = document.getElementById("fullscreenExit");
 btnEnter.addEventListener("click", ()=>{
